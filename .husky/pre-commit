@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Sync types before commit
+npm run sync-types
+
+# Stage the synced types
+git add client/types server/types

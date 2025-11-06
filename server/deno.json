@@ -1,0 +1,11 @@
+{
+  "tasks": {
+    "dev": "deno run --watch --allow-net --allow-env --allow-read --allow-write main.ts"
+  },
+  "imports": {
+    "socket.io": "npm:socket.io@^4.8.1",
+    "types/": "./types/",
+    "zod": "npm:zod@^4.1.12",
+    "dotenv": "https://deno.land/std@0.224.0/dotenv/mod.ts"
+  }
+}
