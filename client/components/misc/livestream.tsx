@@ -1,17 +1,6 @@
-import { useEffect, useRef } from "react";
-
 export default function Livestream({ url }: { url: string }) {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (ref.current) {
-      console.log(ref.current);
-    }
-  });
-
   return (
     <iframe
-      ref={ref}
       src={url + "&autoplay=1&mute=1"}
       title="YouTube video player"
       frameBorder="0"
