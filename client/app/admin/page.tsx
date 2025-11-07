@@ -4,11 +4,7 @@ import { Label } from "@radix-ui/react-label";
 import { useEffect, useState } from "react";
 import { ViewSchema } from "@/lib/schemas";
 
-import {
-  Camera,
-  useSocketContext,
-  VIEW_TRANSLATIONS,
-} from "../../context/socket-context";
+import { Camera, useSocketContext, VIEW_TRANSLATIONS } from "../../context/socket-context";
 
 import { H2 } from "@/components/typography/h2";
 import { H3 } from "@/components/typography/h3";
@@ -29,10 +25,10 @@ export default function Admin() {
     cameraUrls,
     setCameraUrls,
   } = useSocketContext();
-  const [localCameraUrls, setLocalCameraUrls] =
-    useState<Record<Camera, string>>(cameraUrls);
+  const [localCameraUrls, setLocalCameraUrls] = useState<Record<Camera, string>>(cameraUrls);
 
   function toggleCam(cam: Camera, checked: boolean) {
+    console.log("[DEBUG Admin] toggleCam called:", cam, checked);
     if (checked) {
       setEnabledCams([...enabledCams, cam]);
     } else {
@@ -41,6 +37,7 @@ export default function Admin() {
   }
 
   function updateLocalCameraUrl(cam: Camera, url: string) {
+    console.log("[DEBUG Admin] updateLocalCameraUrl called:", cam, url);
     setLocalCameraUrls((prev) => ({
       ...prev,
       [cam]: url,
@@ -48,7 +45,7 @@ export default function Admin() {
   }
 
   useEffect(() => {
-    console.log("Updating localCameraUrls", cameraUrls);
+    console.log("[DEBUG Admin] Updating localCameraUrls from context:", cameraUrls);
     setLocalCameraUrls(cameraUrls);
   }, [cameraUrls]);
 
@@ -98,20 +95,25 @@ export default function Admin() {
             <Input
               id={"url-" + cam}
               value={localCameraUrls[cam] ?? ""}
-              onChange={(e) =>
-                updateLocalCameraUrl(cam, (e.target as HTMLInputElement).value)
-              }
+              onChange={(e) => updateLocalCameraUrl(cam, (e.target as HTMLInputElement).value)}
             />
           </div>
         ))}
       </div>
-      <Button onClick={() => setCameraUrls(localCameraUrls)}>
+      <Button
+        onClick={() => {
+          console.log(
+            "[DEBUG Admin] Update button clicked, setting cameraUrls to:",
+            localCameraUrls,
+          );
+          setCameraUrls(localCameraUrls);
+        }}
+      >
         Aktualisieren
       </Button>
       <P>
-        Hinweis: Nach dem Aktualisieren laden alle verbundenen Clients die
-        veränderten URLs automatisch. Streams unveränderter URLs werden nicht
-        neu geladen.
+        Hinweis: Nach dem Aktualisieren laden alle verbundenen Clients die veränderten URLs
+        automatisch. Streams unveränderter URLs werden nicht neu geladen.
       </P>
     </div>
   );

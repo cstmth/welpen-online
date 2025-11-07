@@ -48,6 +48,8 @@ export function useSocketContext(): SocketContextType {
 }
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
+  console.log("[DEBUG SocketProvider] Component rendering, Socket ID:", socket.id);
+
   const [isConnected, setIsConnected] = useState(false);
   const [enabledCams, setEnabledCams] = useState<Camera[]>([]);
   const [currentView, setCurrentView] = useState<View>(OVERVIEW);
@@ -64,11 +66,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
+    console.log("[DEBUG SocketProvider] Main effect mounting, Socket ID:", socket.id);
+
     socket.on("connect", () => {
+      console.log("[DEBUG SocketProvider] Socket connected, ID:", socket.id);
       setIsConnected(true);
     });
 
     socket.on("disconnect", () => {
+      console.log("[DEBUG SocketProvider] Socket disconnected");
       setIsConnected(false);
     });
 
@@ -115,6 +121,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      console.log("[DEBUG SocketProvider] Main effect cleanup, Socket ID:", socket.id);
       socket.off("connect");
       socket.off("disconnect");
       socket.off(Events.enabledCams);
@@ -124,29 +131,56 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    console.log(
+      "[DEBUG enabledCams effect] Running. Flag:",
+      sendNextStateChange.current.enabledCams,
+      "Value:",
+      enabledCams,
+      "Socket ID:",
+      socket.id,
+    );
     if (!sendNextStateChange.current.enabledCams) {
       sendNextStateChange.current.enabledCams = true;
+      console.log("[DEBUG enabledCams effect] First run, skipping emit");
       return;
     }
-    console.log("New enabledCams:", enabledCams);
+    console.log("[DEBUG enabledCams effect] Emitting to server:", enabledCams);
     socket.emit(Events.setEnabledCams, EnabledCamsSchema.parse(enabledCams));
   }, [enabledCams]);
 
   useEffect(() => {
+    console.log(
+      "[DEBUG currentView effect] Running. Flag:",
+      sendNextStateChange.current.currentView,
+      "Value:",
+      currentView,
+      "Socket ID:",
+      socket.id,
+    );
     if (!sendNextStateChange.current.currentView) {
       sendNextStateChange.current.currentView = true;
+      console.log("[DEBUG currentView effect] First run, skipping emit");
       return;
     }
-    console.log("New currentView:", currentView);
+    console.log("[DEBUG currentView effect] Emitting to server:", currentView);
     socket.emit(Events.setCurrentView, ViewSchema.parse(currentView));
   }, [currentView]);
 
   useEffect(() => {
+    console.log(
+      "[DEBUG cameraUrls effect] Running. Flag:",
+      sendNextStateChange.current.cameraUrls,
+      "Value:",
+      cameraUrls,
+      "Socket ID:",
+      socket.id,
+    );
     if (!sendNextStateChange.current.cameraUrls) {
       sendNextStateChange.current.cameraUrls = true;
+      console.log("[DEBUG cameraUrls effect] First run, skipping emit");
       return;
     }
-    console.log("New cameraUrls:", cameraUrls);
+    console.log("[DEBUG cameraUrls effect] Emitting to server:", cameraUrls);
     socket.emit(Events.setCameraURLs, CameraURLsSchema.parse(cameraUrls));
   }, [cameraUrls]);
 
