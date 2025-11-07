@@ -57,15 +57,11 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     cam3: "",
   });
 
-  // Refs to prevent the default useState values from being emitted to server before the initial server-sent values are received
-  const initialEnabledCamsArrivedRef = useRef(false);
-  const initialCurrentViewArrivedRef = useRef(false);
-  const initialCameraUrlsArrivedRef = useRef(false);
-
-  // Flag refs to indicate the upcoming state change was received from server. In that case, do not re-emit to server (causes endless loop with two or more tabs open)
-  const applyingRemoteEnabledCamsRef = useRef(false);
-  const applyingRemoteCurrentViewRef = useRef(false);
-  const applyingRemoteCameraUrlsRef = useRef(false);
+  const sendNextStateChange = useRef({
+    enabledCams: false,
+    currentView: false,
+    cameraUrls: false,
+  });
 
   useEffect(() => {
     socket.on("connect", () => {
@@ -79,16 +75,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     socket.on(Events.enabledCams, (cams: unknown) => {
       try {
         const validatedEnabledCams = EnabledCamsSchema.parse(cams);
+
+        // do not emit this change because we got it from server
+        sendNextStateChange.current.enabledCams = false;
+
         console.log("Received enabledCams from server:", validatedEnabledCams);
-        applyingRemoteEnabledCamsRef.current = true;
-        setEnabledCams((prev) => {
-          // Reset the flag immediately in the state updater to handle cases where state doesn't change
-          queueMicrotask(() => {
-            applyingRemoteEnabledCamsRef.current = false;
-          });
-          return validatedEnabledCams;
-        });
-        initialEnabledCamsArrivedRef.current = true; // mark hydrated
+        setEnabledCams(validatedEnabledCams);
       } catch (e) {
         console.error("Invalid enabledCams from server:", cams, e);
       }
@@ -97,17 +89,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     socket.on(Events.currentView, (view: unknown) => {
       try {
         const validatedCurrentView = ViewSchema.parse(view);
+
+        // do not emit this change because we got it from server
+        sendNextStateChange.current.currentView = false;
+
         console.log("Received currentView from server:", validatedCurrentView);
-        applyingRemoteCurrentViewRef.current = true;
-        setCurrentView((prev) => {
-          // Reset the flag immediately in the state updater to handle cases where state doesn't change
-          // This ensures the flag is reset even if React doesn't trigger a re-render
-          queueMicrotask(() => {
-            applyingRemoteCurrentViewRef.current = false;
-          });
-          return validatedCurrentView;
-        });
-        initialCurrentViewArrivedRef.current = true; // mark hydrated
+        setCurrentView(validatedCurrentView);
       } catch (e) {
         console.error("Invalid currentView from server:", view, e);
       }
@@ -116,16 +103,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     socket.on(Events.cameraUrls, (urls: unknown) => {
       try {
         const parsed = CameraURLsSchema.parse(urls);
+
+        // do not emit this change because we got it from server
+        sendNextStateChange.current.cameraUrls = false;
+
         console.log("Received cameraUrls from server:", parsed);
-        applyingRemoteCameraUrlsRef.current = true;
-        setCameraUrls((prev) => {
-          // Reset the flag immediately in the state updater to handle cases where state doesn't change
-          queueMicrotask(() => {
-            applyingRemoteCameraUrlsRef.current = false;
-          });
-          return parsed;
-        });
-        initialCameraUrlsArrivedRef.current = true; // mark hydrated
+        setCameraUrls(parsed);
       } catch (e) {
         console.error("Invalid cameraUrls from server:", urls, e);
       }
@@ -141,34 +124,29 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    console.log("New enabledCams:", enabledCams);
-    // don't emit the initial/default value read from useState; only emit after server-sent value was received
-    if (!initialEnabledCamsArrivedRef.current) return;
-    // if this change was applied from a server message, skip re-emitting
-    if (applyingRemoteEnabledCamsRef.current) {
-      applyingRemoteEnabledCamsRef.current = false;
+    if (!sendNextStateChange.current.enabledCams) {
+      sendNextStateChange.current.enabledCams = true;
       return;
     }
+    console.log("New enabledCams:", enabledCams);
     socket.emit(Events.setEnabledCams, EnabledCamsSchema.parse(enabledCams));
   }, [enabledCams]);
 
   useEffect(() => {
-    console.log("New currentView:", currentView);
-    if (!initialCurrentViewArrivedRef.current) return;
-    if (applyingRemoteCurrentViewRef.current) {
-      applyingRemoteCurrentViewRef.current = false;
+    if (!sendNextStateChange.current.currentView) {
+      sendNextStateChange.current.currentView = true;
       return;
     }
+    console.log("New currentView:", currentView);
     socket.emit(Events.setCurrentView, ViewSchema.parse(currentView));
   }, [currentView]);
 
   useEffect(() => {
-    console.log("New cameraUrls:", cameraUrls);
-    if (!initialCameraUrlsArrivedRef.current) return;
-    if (applyingRemoteCameraUrlsRef.current) {
-      applyingRemoteCameraUrlsRef.current = false;
+    if (!sendNextStateChange.current.cameraUrls) {
+      sendNextStateChange.current.cameraUrls = true;
       return;
     }
+    console.log("New cameraUrls:", cameraUrls);
     socket.emit(Events.setCameraURLs, CameraURLsSchema.parse(cameraUrls));
   }, [cameraUrls]);
 
