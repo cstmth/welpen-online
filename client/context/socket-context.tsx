@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Cameras } from "../types/Camera.ts";
 import type { Camera } from "../types/Camera.ts";
 import { Events } from "../types/events.ts";
@@ -41,9 +35,7 @@ export type SocketContextType = {
   setCameraUrls: React.Dispatch<React.SetStateAction<Record<Camera, string>>>;
 };
 
-export const SocketContext = createContext<SocketContextType | undefined>(
-  undefined,
-);
+export const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
 export function useSocketContext(): SocketContextType {
   const ctx = useContext(SocketContext);
@@ -89,7 +81,13 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         const validatedEnabledCams = EnabledCamsSchema.parse(cams);
         console.log("Received enabledCams from server:", validatedEnabledCams);
         applyingRemoteEnabledCamsRef.current = true;
-        setEnabledCams(validatedEnabledCams);
+        setEnabledCams((prev) => {
+          // Reset the flag immediately in the state updater to handle cases where state doesn't change
+          queueMicrotask(() => {
+            applyingRemoteEnabledCamsRef.current = false;
+          });
+          return validatedEnabledCams;
+        });
         initialEnabledCamsArrivedRef.current = true; // mark hydrated
       } catch (e) {
         console.error("Invalid enabledCams from server:", cams, e);
@@ -101,7 +99,14 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         const validatedCurrentView = ViewSchema.parse(view);
         console.log("Received currentView from server:", validatedCurrentView);
         applyingRemoteCurrentViewRef.current = true;
-        setCurrentView(validatedCurrentView);
+        setCurrentView((prev) => {
+          // Reset the flag immediately in the state updater to handle cases where state doesn't change
+          // This ensures the flag is reset even if React doesn't trigger a re-render
+          queueMicrotask(() => {
+            applyingRemoteCurrentViewRef.current = false;
+          });
+          return validatedCurrentView;
+        });
         initialCurrentViewArrivedRef.current = true; // mark hydrated
       } catch (e) {
         console.error("Invalid currentView from server:", view, e);
@@ -113,7 +118,13 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         const parsed = CameraURLsSchema.parse(urls);
         console.log("Received cameraUrls from server:", parsed);
         applyingRemoteCameraUrlsRef.current = true;
-        setCameraUrls(parsed);
+        setCameraUrls((prev) => {
+          // Reset the flag immediately in the state updater to handle cases where state doesn't change
+          queueMicrotask(() => {
+            applyingRemoteCameraUrlsRef.current = false;
+          });
+          return parsed;
+        });
         initialCameraUrlsArrivedRef.current = true; // mark hydrated
       } catch (e) {
         console.error("Invalid cameraUrls from server:", urls, e);
